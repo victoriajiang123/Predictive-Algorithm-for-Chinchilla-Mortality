@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 function clickAndScrape() {
   // ---- CUSTOMIZE THIS SELECTOR to match the button you want to click ----
-  const button = document.querySelector('#the-button-id');
+  const button = document.querySelector('#idBtnSave');
 
   if (!button) {
     console.warn('Click & Save: button not found on this page.');
