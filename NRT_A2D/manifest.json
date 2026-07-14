@@ -3,7 +3,7 @@
   "name": "Click & Save",
   "version": "1.0",
   "description": "Clicks a button on a page, scrapes the resulting data, and saves it via the native Save As dialog.",
-  "permissions": ["downloads", "activeTab", "scripting", "nativeMessaging"],
+  "permissions": ["downloads", "activeTab", "scripting", "nativeMessaging", "declarativeNetRequest"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html"
