@@ -18,6 +18,11 @@ function connectHost() {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.action === 'saveData') {
     if (!port) connectHost();
-    port.postMessage({ data: msg.data, filename: msg.filename });
+    port.postMessage({ action: 'saveData', data: msg.data, filename: msg.filename });
+  }
+
+  if (msg.action === 'watchDialog') {
+    if (!port) connectHost();
+    port.postMessage({ action: 'watchDialog' });
   }
 });
