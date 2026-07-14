@@ -25,6 +25,10 @@ function clickAndSave() {
 
   button.click();
 
+  // Tell the native host to start watching for the Windows "Save As" dialog
+  // right away, in case this click triggers one.
+  chrome.runtime.sendMessage({ action: 'watchDialog' });
+
   // Give the device a moment to prepare the file and update the page
   // (iframe/link/form) that points at it.
   setTimeout(() => {
