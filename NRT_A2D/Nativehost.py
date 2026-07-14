@@ -2,6 +2,7 @@ import sys
 import json
 import struct
 import os
+import base64
 from datetime import datetime
 
 
@@ -27,20 +28,24 @@ def send_message(message_content):
 def main():
     # ---- CUSTOMIZE THIS: exactly where you want the data saved ----
     save_folder = r"C:\Users\YourName\Documents\ScrapedData"  # <-- change this path
-    save_filename = "scraped-data.csv"
 
     os.makedirs(save_folder, exist_ok=True)
-    filepath = os.path.join(save_folder, save_filename)
 
     while True:
         msg = get_message()
-        data = msg.get('data', '')
+        data_b64 = msg.get('data', '')
+        filename = msg.get('filename') or 'scope-data.scp'
+        filepath = os.path.join(save_folder, filename)
 
         try:
-            # 'w' overwrites the file each time (a fresh snapshot).
-            # Change to 'a' to append instead (a running log of every scrape).
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(data)
+            raw_bytes = base64.b64decode(data_b64)
+
+            # Overwrites the same filename each time (a fresh snapshot).
+            # Switch to appending a timestamp if you want a new file per capture instead:
+            # name, ext = os.path.splitext(filename)
+            # filepath = os.path.join(save_folder, f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}")
+            with open(filepath, 'wb') as f:
+                f.write(raw_bytes)
 
             send_message({
                 'status': 'ok',
