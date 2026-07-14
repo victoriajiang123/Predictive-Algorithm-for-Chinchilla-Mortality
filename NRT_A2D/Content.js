@@ -23,31 +23,82 @@ function clickAndSave() {
     return;
   }
 
-  button.click();
+  let handled = false;
+
+  // Watches the whole page continuously the instant we click, so we catch
+  // the download URL the moment it appears — even if it's removed again
+  // right away (common pattern for "invisible" downloads).
+  const observer = new MutationObserver((mutationsList) => {
+    if (handled) return;
+
+    for (const mutation of mutationsList) {
+      let url = null;
+
+      if (mutation.type === 'attributes') {
+        const el = mutation.target;
+        const val = el.getAttribute(mutation.attributeName);
+        if (val && val.includes('download.asp')) {
+          url = new URL(val, window.location.href).href;
+        }
+      } else if (mutation.type === 'childList') {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === 1) {
+            const src = node.src || node.href || (node.tagName === 'FORM' ? node.action : null);
+            if (src && src.includes('download.asp')) {
+              url = src;
+            }
+          }
+        }
+      }
+
+      if (url) {
+        handled = true;
+        observer.disconnect();
+        fetchAndSave(url);
+        return;
+      }
+    }
+  });
+
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['src', 'href', 'action'],
+    childList: true,
+    subtree: true,
+  });
 
   // Tell the native host to start watching for the Windows "Save As" dialog
   // right away, in case this click triggers one.
   chrome.runtime.sendMessage({ action: 'watchDialog' });
 
-  // Give the device a moment to prepare the file and update the page
-  // (iframe/link/form) that points at it.
+  button.click();
+
+  // Fallback in case the URL was already present before we started
+  // observing, or the observer somehow missed it.
   setTimeout(() => {
-    const downloadUrl = findDownloadUrl();
+    if (handled) return;
 
-    if (!downloadUrl) {
+    const url = findDownloadUrl();
+    observer.disconnect();
+
+    if (url) {
+      handled = true;
+      fetchAndSave(url);
+    } else {
       console.warn('Click & Save: could not find a download.asp URL after clicking.');
-      return;
     }
+  }, 3000);
+}
 
-    fetch(downloadUrl)
-      .then((res) => res.arrayBuffer())
-      .then((buffer) => {
-        const base64 = arrayBufferToBase64(buffer);
-        const filename = getFilenameFromUrl(downloadUrl);
-        chrome.runtime.sendMessage({ action: 'saveData', data: base64, filename });
-      })
-      .catch((err) => console.error('Click & Save: fetch failed', err));
-  }, 1000);
+function fetchAndSave(downloadUrl) {
+  fetch(downloadUrl)
+    .then((res) => res.arrayBuffer())
+    .then((buffer) => {
+      const base64 = arrayBufferToBase64(buffer);
+      const filename = getFilenameFromUrl(downloadUrl);
+      chrome.runtime.sendMessage({ action: 'saveData', data: base64, filename });
+    })
+    .catch((err) => console.error('Click & Save: fetch failed', err));
 }
 
 function findDownloadUrl() {
