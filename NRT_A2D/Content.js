@@ -3,8 +3,8 @@ let intervalId = null;
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.action === 'start') {
     if (intervalId) return; // already running
-    clickAndScrape(); // run immediately, then every 10s
-    intervalId = setInterval(clickAndScrape, 10000);
+    clickAndSave(); // run immediately, then every 10s
+    intervalId = setInterval(clickAndSave, 10000);
     console.log('Click & Save: started, running every 10s.');
   }
 
@@ -15,8 +15,7 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-function clickAndScrape() {
-  // ---- CUSTOMIZE THIS SELECTOR to match the button you want to click ----
+function clickAndSave() {
   const button = document.querySelector('#idBtnSave');
 
   if (!button) {
@@ -26,25 +25,62 @@ function clickAndScrape() {
 
   button.click();
 
-  // Give the page time to update/render new data after the click.
-  // Increase this if the site is slow, or replace with a MutationObserver
-  // if you need to wait for a specific element to appear instead.
+  // Give the device a moment to prepare the file and update the page
+  // (iframe/link/form) that points at it.
   setTimeout(() => {
-    const data = scrapeData();
-    chrome.runtime.sendMessage({ action: 'saveData', data });
+    const downloadUrl = findDownloadUrl();
+
+    if (!downloadUrl) {
+      console.warn('Click & Save: could not find a download.asp URL after clicking.');
+      return;
+    }
+
+    fetch(downloadUrl)
+      .then((res) => res.arrayBuffer())
+      .then((buffer) => {
+        const base64 = arrayBufferToBase64(buffer);
+        const filename = getFilenameFromUrl(downloadUrl);
+        chrome.runtime.sendMessage({ action: 'saveData', data: base64, filename });
+      })
+      .catch((err) => console.error('Click & Save: fetch failed', err));
   }, 1000);
 }
 
-function scrapeData() {
-  // ---- CUSTOMIZE THIS to match the data you actually want ----
-  // Example: turns the first <table> on the page into CSV.
-  const rows = document.querySelectorAll('table tr');
-  let csv = '';
-  rows.forEach((row) => {
-    const cells = Array.from(row.querySelectorAll('td, th')).map(
-      (cell) => `"${cell.innerText.replace(/"/g, '""')}"`
-    );
-    csv += cells.join(',') + '\n';
-  });
-  return csv;
+function findDownloadUrl() {
+  // Looks anywhere on the page for something pointing at download.asp,
+  // grabbing whatever the CURRENT params are (works whether they change or not).
+  const iframe = Array.from(document.querySelectorAll('iframe')).find(
+    (f) => f.src && f.src.includes('download.asp')
+  );
+  if (iframe) return iframe.src;
+
+  const anchor = Array.from(document.querySelectorAll('a')).find(
+    (a) => a.href && a.href.includes('download.asp')
+  );
+  if (anchor) return anchor.href;
+
+  const form = Array.from(document.querySelectorAll('form')).find(
+    (f) => f.action && f.action.includes('download.asp')
+  );
+  if (form) return form.action;
+
+  return null;
+}
+
+function getFilenameFromUrl(url) {
+  try {
+    const urlObj = new URL(url, window.location.origin);
+    return urlObj.searchParams.get('filename') || 'scope-data.scp';
+  } catch {
+    return 'scope-data.scp';
+  }
+}
+
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
