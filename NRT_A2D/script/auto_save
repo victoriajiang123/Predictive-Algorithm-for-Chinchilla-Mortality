@@ -1,0 +1,27 @@
+from pywinauto import Desktop
+import time
+
+print("Watching for 'Save As' dialogs... Press Ctrl+C to stop.")
+
+while True:
+    try:
+        # Look for any visible window with "Save As" in the title
+        dlg = Desktop(backend="uia").window(title_re=".*Save As.*", visible_only=True)
+
+        if dlg.exists(timeout=0.5):
+            print("Found Save As dialog!")
+
+            # Find the Save button and click it
+            save_button = dlg.child_window(title="Save", control_type="Button")
+            save_button.click_input()
+
+            print("Clicked Save.")
+
+            # Wait a moment so we don't click it repeatedly
+            time.sleep(1)
+
+    except Exception:
+        # Ignore errors and keep checking
+        pass
+
+    time.sleep(0.2)
