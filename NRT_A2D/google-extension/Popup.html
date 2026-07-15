@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      width: 280px;
+      padding: 12px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: #333;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      margin-bottom: 6px;
+    }
+    #startBtn { background: #2e7d32; }
+    #stopBtn { background: #c62828; }
+    #status {
+      font-size: 12px;
+      margin-top: 8px;
+      text-align: center;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <label for="selector">CSS Selector of button to click</label>
+  <input type="text" id="selector" placeholder="e.g. #submit-btn or .my-button" value="#idBtnSave" />
+
+  <label for="interval">Interval (seconds)</label>
+  <input type="number" id="interval" min="1" value="10" />
+
+  <button id="startBtn">Start Clicking</button>
+  <button id="stopBtn">Stop</button>
+
+  <div id="status">Status: unknown</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
