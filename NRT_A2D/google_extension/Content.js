@@ -1,5 +1,12 @@
 let intervalId = null;
 
+// Fired by page_hook.js the instant it catches the page trying to open/navigate
+// to the download URL via window.open() or a popup's location.
+window.addEventListener('__clicksave_download_url__', (e) => {
+  const url = e.detail && e.detail.url;
+  if (url) fetchAndSave(url);
+});
+
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.action === 'start') {
     if (intervalId) return; // already running
